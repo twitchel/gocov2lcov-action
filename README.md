@@ -1,5 +1,5 @@
-# gocov2lcov-action
-A multi-arch and multi-OS capable gocov2lcov action runner
+# gcov2lcov-action
+A multi-arch and multi-OS capable gcov2lcov action runner
 
 ## Inputs
 
@@ -7,6 +7,7 @@ A multi-arch and multi-OS capable gocov2lcov action runner
 - `OS`: `linux`, `windows`, `freebsd`, or `darwin`
 - `INFILE`: path to the Go coverage file to convert
 - `OUTFILE`: output path for the generated LCOV file
+- `VERSION`: optional upstream release tag to download (defaults to `v1.1.1`)
 
 ## Example
 

@@ -1,4 +1,4 @@
-name: gocov2lcov-action
+name: gcov2lcov-action
 description: Download and run gcov2lcov for the requested platform.
 
 inputs:
@@ -14,6 +14,10 @@ inputs:
   OUTFILE:
     description: Path where the generated LCOV file should be written.
     required: true
+  VERSION:
+    description: Upstream gcov2lcov release tag to download.
+    required: false
+    default: v1.1.1
 
 runs:
   using: composite
@@ -26,10 +30,10 @@ runs:
         ACTION_OS: ${{ inputs.OS }}
         ACTION_INFILE: ${{ inputs.INFILE }}
         ACTION_OUTFILE: ${{ inputs.OUTFILE }}
-        ACTION_TAG: v1.1.1
-        ACTION_VERSION: 1.1.1
+        ACTION_TAG: ${{ inputs.VERSION }}
       run: |
         $ErrorActionPreference = 'Stop'
+        $version = $env:ACTION_TAG.TrimStart('v')
 
         switch ($env:ACTION_ARCH) {
           'amd64' { }
@@ -48,9 +52,9 @@ runs:
         $assetName = if ($env:ACTION_OS -eq 'linux' -and $env:ACTION_ARCH -eq 'amd64') {
           'gcov2lcov-linux-amd64.tar.gz'
         } elseif ($env:ACTION_OS -eq 'windows') {
-          "gcov2lcov_$($env:ACTION_VERSION)_windows_$($env:ACTION_ARCH).zip"
+          "gcov2lcov_${version}_windows_$($env:ACTION_ARCH).zip"
         } else {
-          "gcov2lcov_$($env:ACTION_VERSION)_$($env:ACTION_OS)_$($env:ACTION_ARCH).tar.gz"
+          "gcov2lcov_${version}_$($env:ACTION_OS)_$($env:ACTION_ARCH).tar.gz"
         }
 
         $downloadUrl = "https://github.com/jandelgado/gcov2lcov/releases/download/$($env:ACTION_TAG)/$assetName"
@@ -89,10 +93,10 @@ runs:
         ACTION_OS: ${{ inputs.OS }}
         ACTION_INFILE: ${{ inputs.INFILE }}
         ACTION_OUTFILE: ${{ inputs.OUTFILE }}
-        ACTION_TAG: v1.1.1
-        ACTION_VERSION: 1.1.1
+        ACTION_TAG: ${{ inputs.VERSION }}
       run: |
         set -euo pipefail
+        action_version="${ACTION_TAG#v}"
 
         case "${ACTION_ARCH}" in
           amd64|arm64) ;;
@@ -113,9 +117,9 @@ runs:
         if [[ "${ACTION_OS}" == "linux" && "${ACTION_ARCH}" == "amd64" ]]; then
           asset_name="gcov2lcov-linux-amd64.tar.gz"
         elif [[ "${ACTION_OS}" == "windows" ]]; then
-          asset_name="gcov2lcov_${ACTION_VERSION}_windows_${ACTION_ARCH}.zip"
+          asset_name="gcov2lcov_${action_version}_windows_${ACTION_ARCH}.zip"
         else
-          asset_name="gcov2lcov_${ACTION_VERSION}_${ACTION_OS}_${ACTION_ARCH}.tar.gz"
+          asset_name="gcov2lcov_${action_version}_${ACTION_OS}_${ACTION_ARCH}.tar.gz"
         fi
 
         download_url="https://github.com/jandelgado/gcov2lcov/releases/download/${ACTION_TAG}/${asset_name}"
