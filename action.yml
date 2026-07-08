@@ -1,0 +1,145 @@
+name: gocov2lcov-action
+description: Download and run gcov2lcov for the requested platform.
+
+inputs:
+  ARCH:
+    description: Target architecture (amd64 or arm64).
+    required: true
+  OS:
+    description: Target operating system (linux, windows, freebsd, darwin).
+    required: true
+  INFILE:
+    description: Path to the Go coverage file to convert.
+    required: true
+  OUTFILE:
+    description: Path where the generated LCOV file should be written.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Run gcov2lcov on Windows
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        ACTION_ARCH: ${{ inputs.ARCH }}
+        ACTION_OS: ${{ inputs.OS }}
+        ACTION_INFILE: ${{ inputs.INFILE }}
+        ACTION_OUTFILE: ${{ inputs.OUTFILE }}
+        ACTION_TAG: v1.1.1
+        ACTION_VERSION: 1.1.1
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        switch ($env:ACTION_ARCH) {
+          'amd64' { }
+          'arm64' { }
+          default { throw "Unsupported ARCH '$($env:ACTION_ARCH)'. Expected amd64 or arm64." }
+        }
+
+        switch ($env:ACTION_OS) {
+          'linux' { }
+          'windows' { }
+          'freebsd' { }
+          'darwin' { }
+          default { throw "Unsupported OS '$($env:ACTION_OS)'. Expected linux, windows, freebsd, or darwin." }
+        }
+
+        $assetName = if ($env:ACTION_OS -eq 'linux' -and $env:ACTION_ARCH -eq 'amd64') {
+          'gcov2lcov-linux-amd64.tar.gz'
+        } elseif ($env:ACTION_OS -eq 'windows') {
+          "gcov2lcov_$($env:ACTION_VERSION)_windows_$($env:ACTION_ARCH).zip"
+        } else {
+          "gcov2lcov_$($env:ACTION_VERSION)_$($env:ACTION_OS)_$($env:ACTION_ARCH).tar.gz"
+        }
+
+        $downloadUrl = "https://github.com/jandelgado/gcov2lcov/releases/download/$($env:ACTION_TAG)/$assetName"
+        $tempDir = Join-Path $env:RUNNER_TEMP "gcov2lcov-action"
+        if (Test-Path $tempDir) {
+          Remove-Item -Recurse -Force $tempDir
+        }
+        New-Item -ItemType Directory -Path $tempDir | Out-Null
+
+        $archivePath = Join-Path $tempDir $assetName
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath
+
+        if ($assetName.EndsWith('.zip')) {
+          Expand-Archive -Path $archivePath -DestinationPath $tempDir -Force
+          $binaryPath = Join-Path $tempDir 'gcov2lcov.exe'
+        } else {
+          tar -xzf $archivePath -C $tempDir
+          $binaryPath = if ($env:ACTION_OS -eq 'linux' -and $env:ACTION_ARCH -eq 'amd64') {
+            Join-Path $tempDir 'bin/gcov2lcov-linux-amd64'
+          } else {
+            Join-Path $tempDir 'gcov2lcov'
+          }
+        }
+
+        $outputDir = Split-Path -Parent $env:ACTION_OUTFILE
+        if ($outputDir) {
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+        }
+        & $binaryPath -infile $env:ACTION_INFILE -outfile $env:ACTION_OUTFILE
+
+    - name: Run gcov2lcov on non-Windows runners
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        ACTION_ARCH: ${{ inputs.ARCH }}
+        ACTION_OS: ${{ inputs.OS }}
+        ACTION_INFILE: ${{ inputs.INFILE }}
+        ACTION_OUTFILE: ${{ inputs.OUTFILE }}
+        ACTION_TAG: v1.1.1
+        ACTION_VERSION: 1.1.1
+      run: |
+        set -euo pipefail
+
+        case "${ACTION_ARCH}" in
+          amd64|arm64) ;;
+          *)
+            echo "Unsupported ARCH '${ACTION_ARCH}'. Expected amd64 or arm64." >&2
+            exit 1
+            ;;
+        esac
+
+        case "${ACTION_OS}" in
+          linux|windows|freebsd|darwin) ;;
+          *)
+            echo "Unsupported OS '${ACTION_OS}'. Expected linux, windows, freebsd, or darwin." >&2
+            exit 1
+            ;;
+        esac
+
+        if [[ "${ACTION_OS}" == "linux" && "${ACTION_ARCH}" == "amd64" ]]; then
+          asset_name="gcov2lcov-linux-amd64.tar.gz"
+        elif [[ "${ACTION_OS}" == "windows" ]]; then
+          asset_name="gcov2lcov_${ACTION_VERSION}_windows_${ACTION_ARCH}.zip"
+        else
+          asset_name="gcov2lcov_${ACTION_VERSION}_${ACTION_OS}_${ACTION_ARCH}.tar.gz"
+        fi
+
+        download_url="https://github.com/jandelgado/gcov2lcov/releases/download/${ACTION_TAG}/${asset_name}"
+        temp_dir="${RUNNER_TEMP}/gcov2lcov-action"
+        rm -rf "${temp_dir}"
+        mkdir -p "${temp_dir}"
+
+        archive_path="${temp_dir}/${asset_name}"
+        curl --fail --silent --show-error --location --retry 3 \
+          --output "${archive_path}" \
+          "${download_url}"
+
+        if [[ "${asset_name}" == *.zip ]]; then
+          python3 -m zipfile -e "${archive_path}" "${temp_dir}"
+          binary_path="${temp_dir}/gcov2lcov.exe"
+        else
+          tar -xzf "${archive_path}" -C "${temp_dir}"
+          if [[ "${ACTION_OS}" == "linux" && "${ACTION_ARCH}" == "amd64" ]]; then
+            binary_path="${temp_dir}/bin/gcov2lcov-linux-amd64"
+          else
+            binary_path="${temp_dir}/gcov2lcov"
+          fi
+        fi
+
+        chmod +x "${binary_path}" || true
+        mkdir -p "$(dirname "${ACTION_OUTFILE}")"
+        "${binary_path}" -infile "${ACTION_INFILE}" -outfile "${ACTION_OUTFILE}"
