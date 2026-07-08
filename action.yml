@@ -109,17 +109,15 @@ runs:
         esac
 
         case "${ACTION_OS}" in
-          linux|windows|freebsd|darwin) ;;
+          linux|freebsd|darwin) ;;
           *)
-            echo "Unsupported OS '${ACTION_OS}'. Expected linux, windows, freebsd, or darwin." >&2
+            echo "Unsupported OS '${ACTION_OS}'. Expected linux, freebsd, or darwin." >&2
             exit 1
             ;;
         esac
 
         if [[ "${ACTION_OS}" == "linux" && "${ACTION_ARCH}" == "amd64" ]]; then
           asset_name="gcov2lcov-linux-amd64.tar.gz"
-        elif [[ "${ACTION_OS}" == "windows" ]]; then
-          asset_name="gcov2lcov_${action_version}_windows_${ACTION_ARCH}.zip"
         else
           asset_name="gcov2lcov_${action_version}_${ACTION_OS}_${ACTION_ARCH}.tar.gz"
         fi
@@ -134,16 +132,11 @@ runs:
           --output "${archive_path}" \
           "${download_url}"
 
-        if [[ "${asset_name}" == *.zip ]]; then
-          python3 -m zipfile -e "${archive_path}" "${temp_dir}"
-          binary_path="${temp_dir}/gcov2lcov.exe"
+        tar -xzf "${archive_path}" -C "${temp_dir}"
+        if [[ "${ACTION_OS}" == "linux" && "${ACTION_ARCH}" == "amd64" ]]; then
+          binary_path="${temp_dir}/bin/gcov2lcov-linux-amd64"
         else
-          tar -xzf "${archive_path}" -C "${temp_dir}"
-          if [[ "${ACTION_OS}" == "linux" && "${ACTION_ARCH}" == "amd64" ]]; then
-            binary_path="${temp_dir}/bin/gcov2lcov-linux-amd64"
-          else
-            binary_path="${temp_dir}/gcov2lcov"
-          fi
+          binary_path="${temp_dir}/gcov2lcov"
         fi
 
         chmod +x "${binary_path}" || true
