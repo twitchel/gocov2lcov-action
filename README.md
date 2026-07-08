@@ -1,4 +1,4 @@
-# gcov2lcov-action
+# gocov2lcov-action
 A multi-arch and multi-OS capable gcov2lcov action runner
 
 ## Inputs
