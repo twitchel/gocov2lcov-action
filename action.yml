@@ -4,10 +4,12 @@ description: Download and run gcov2lcov for the requested platform.
 inputs:
   ARCH:
     description: Target architecture (amd64 or arm64).
-    required: true
+    required: false
+    default: amd64
   OS:
     description: Target operating system (linux, windows, freebsd, darwin).
-    required: true
+    required: false
+    default: linux
   INFILE:
     description: Path to the Go coverage file to convert.
     required: true
