@@ -1,4 +1,4 @@
-# gocov2lcov-action
+# gcov2lcov-action
 A multi-arch and multi-OS capable gcov2lcov action runner
 
 ## Inputs
@@ -12,7 +12,7 @@ A multi-arch and multi-OS capable gcov2lcov action runner
 ## Example
 
 ```yaml
-- uses: twitchel/gocov2lcov-action@main
+- uses: twitchel/gocov2lcov-action@v1
   with:
     ARCH: amd64
     OS: linux

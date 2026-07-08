@@ -1,4 +1,4 @@
-name: gocov2lcov-action
+name: gcov2lcov-action
 description: Download and run gcov2lcov for the requested platform.
 
 inputs:
